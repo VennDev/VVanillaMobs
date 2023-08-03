@@ -197,8 +197,8 @@ class GroundMonster extends GroundCritter {
 					);
 
 					if ($this->finding === null) {
-						$goto->find()->then(function (array $path) use ($locationTarget) : void {
-							$this->finding = new Promise(function ($resolve) use ($path, $locationTarget) {
+						$goto->find()->then(function (array $path) : void {
+							$this->finding = new Promise(function ($resolve) use ($path) {
 								foreach ($path as $node) {
 									/** @var Node $node */
 									$this->onMove(new Vector3($node->x, $this->motion->y, $node->z), $this->getLocation());
@@ -208,7 +208,7 @@ class GroundMonster extends GroundCritter {
 							$this->finding->then(function () : void {
 								$this->finding = null;
 							});
-						})->catch(function () use ($locationTarget) : void {
+						})->catch(function () : void {
 							$this->setTarget(null);
 							$this->finding = null;
 						});
