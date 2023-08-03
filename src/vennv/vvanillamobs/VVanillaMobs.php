@@ -18,7 +18,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace vennv\vvanillamobs;
 
@@ -29,12 +29,12 @@ use vennv\vapm\VapmPMMP;
 
 final class VVanillaMobs extends PluginBase implements Listener {
 
-    protected function onEnable() : void {
-        VapmPMMP::init($this);
-        Registrations::init();
+	protected function onEnable() : void {
+		VapmPMMP::init($this);
+		Registrations::init();
 
-        $this->getServer()->getPluginManager()->registerEvents($this, $this);
-    }
+		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+	}
 
 	/**
 	 * @param string $entity
@@ -43,7 +43,7 @@ final class VVanillaMobs extends PluginBase implements Listener {
 	 *
 	 * This is a function that can be used to summon entities.
 	 */
-    public function summon(string $entity, ...$args) : bool {
+	public function summon(string $entity, ...$args) : bool {
 		$entity = Registrations::getEntity($entity, ...$args);
 
 		if ($entity !== null) {
