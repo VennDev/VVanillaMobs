@@ -39,8 +39,8 @@ class Zombie extends GroundMonster implements Ageable {
 	public float $damageAttack = 2.0;
 
 	public function __construct(Location $location, ?CompoundTag $nbt = null, bool $isBaby = false) {
-		$this->isBaby = $isBaby;
 		parent::__construct($location, $nbt);
+		$this->isBaby = $isBaby;
 	}
 
 	public function getName() : string {

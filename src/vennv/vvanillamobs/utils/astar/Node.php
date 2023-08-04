@@ -22,11 +22,11 @@ declare(strict_types = 1);
 
 namespace vennv\vvanillamobs\utils\astar;
 
-use pocketmine\math\Math;
-
 final class Node {
 
 	public float $x;
+
+	public float $y;
 
 	public float $z;
 
@@ -38,8 +38,9 @@ final class Node {
 
 	public ?Node $parent = null;
 
-	public function __construct(float $x, float $z) {
+	public function __construct(float $x, float $y, float $z) {
 		$this->x = $x;
+		$this->y = round($y);
 		$this->z = $z;
 	}
 
@@ -49,13 +50,14 @@ final class Node {
 
 	public function getDistance(Node $node) : float {
 		$dx = abs($this->x - $node->x);
+		$dy = abs($this->y - $node->y);
 		$dz = abs($this->z - $node->z);
 
 		if ($dx > $dz) {
-			return 14 * $dz + 10 * ($dx - $dz);
+			return 14 * $dz + 10 * ($dx - $dz) + 10 * $dy;
 		}
 
-		return 14 * $dx + 10 * ($dz - $dx);
+		return 14 * $dx + 10 * ($dz - $dx) + 10 * $dy;
 	}
 
 	public function calculateF() : void {
@@ -75,7 +77,7 @@ final class Node {
 	}
 
 	public function __toString() : string {
-		return "Node(x: {$this->x}, z: {$this->z}, g: {$this->g}, h: {$this->h}, f: {$this->f})";
+		return "Node(x: {$this->x}, y: {$this->y}, z: {$this->z}, g: {$this->g}, h: {$this->h}, f: {$this->f})";
 	}
 
 }

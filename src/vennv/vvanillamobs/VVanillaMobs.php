@@ -23,6 +23,7 @@ declare(strict_types = 1);
 namespace vennv\vvanillamobs;
 
 use pocketmine\event\Listener;
+use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\plugin\PluginBase;
 use vennv\vvanillamobs\entity\Registrations;
 use vennv\vapm\VapmPMMP;
@@ -52,6 +53,11 @@ final class VVanillaMobs extends PluginBase implements Listener {
 		}
 
 		return false;
+	}
+
+	public function onPlayerJoin(PlayerJoinEvent $event) : void {
+		$player = $event->getPlayer();
+		$this->summon("Zombie", $player->getLocation());
 	}
 
 }

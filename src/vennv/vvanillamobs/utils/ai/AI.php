@@ -23,6 +23,8 @@ declare(strict_types = 1);
 namespace vennv\vvanillamobs\utils\ai;
 
 use pocketmine\block\Block;
+use pocketmine\block\Slab;
+use pocketmine\block\Stair;
 use pocketmine\entity\Entity;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
@@ -32,19 +34,33 @@ final class AI {
 	/**
 	 * @param Entity $entity
 	 * @param Vector3 $vector3
-	 * @param array<int, Block> $blocksBlocked
+	 * @param array<int, Unbeatable> $blocksBlocked
 	 * @return bool
 	 */
 	public static function canPass(Entity $entity, Vector3 $vector3, array $blocksBlocked = []) : bool {
 		$down = $entity->getWorld()->getBlock($vector3->getSide(Facing::DOWN));
 
 		foreach ($blocksBlocked as $block) {
-			if ($down->getTypeId() === $block->getTypeId()) {
+			if ($down->getTypeId() === $block->getBlock()->getTypeId()) {
 				return false;
 			}
 		}
 
 		return true;
+	}
+
+	/**
+	 * @param Vector3 $vector3
+	 * @return Vector3
+	 */
+	public static function randomVector3(Vector3 $vector3) : Vector3 {
+		$x = mt_rand(5, 10);
+		$z = mt_rand(5, 10);
+
+		$vector3->x += mt_rand(0, 1) === 1 ? $x : -$x;
+		$vector3->z += mt_rand(0, 1) === 1 ? $z : -$z;
+
+		return $vector3;
 	}
 
 }

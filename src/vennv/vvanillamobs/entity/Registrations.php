@@ -28,6 +28,7 @@ use pocketmine\entity\EntityFactory;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\world\World;
 use pocketmine\Server;
+use vennv\vvanillamobs\entity\entities\overworld\Creeper;
 use vennv\vvanillamobs\entity\entities\overworld\Zombie;
 
 final class Registrations {
@@ -49,6 +50,7 @@ final class Registrations {
 	private static function getEntitiesOverWorld() : array {
 		return [
 			"Zombie" => Zombie::class,
+			"Creeper" => Creeper::class,
 		];
 	}
 

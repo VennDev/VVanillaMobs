@@ -23,13 +23,15 @@ declare(strict_types = 1);
 namespace vennv\vvanillamobs\utils\astar;
 
 use Generator;
-use pocketmine\block\Block;
 use Throwable;
+use pocketmine\block\Slab;
+use pocketmine\block\Stair;
 use pocketmine\block\Air;
 use pocketmine\math\Vector3;
 use pocketmine\world\World;
 use vennv\vapm\FiberManager;
 use vennv\vapm\Promise;
+use vennv\vvanillamobs\utils\ai\Unbeatable;
 
 /**
  * Class AStar
@@ -51,17 +53,14 @@ final class AStar {
 
 	public World $world;
 
-	public float $y;
-
 	/**
 	 * AStar constructor.
 	 * @param array $start
 	 * @param array $end
 	 * @param World $world
-	 * @param float $y
-	 * @param array<int, Block> $blocksBlocked
+	 * @param array<int, Unbeatable> $blocksBlocked
 	 */
-	public function __construct(array $start, array $end, World $world, float $y, array $blocksBlocked = []) {
+	public function __construct(array $start, array $end, World $world, array $blocksBlocked = []) {
 		$this->end = new Node(...$end);
 		$this->start = new Node(...$start);
 		$this->start->g = $this->start->getDistance($this->start);
@@ -69,7 +68,6 @@ final class AStar {
 		$this->start->f = $this->start->g + $this->start->h;
 		$this->openList[] = $this->start;
 		$this->world = $world;
-		$this->y = $y;
 		$this->blocksBlocked = $blocksBlocked;
 	}
 
@@ -80,6 +78,8 @@ final class AStar {
 	 */
 	public function find() : Promise {
 		return new Promise(function ($resolve) : void {
+			$timeStart = microtime(true);
+
 			while (count($this->openList) > 0) {
 				$current = $this->openList[0];
 				$currentIndex = 0;
@@ -97,13 +97,15 @@ final class AStar {
 
 				$this->closedList[] = $current;
 
+				$canEnd = count($this->closedList) > 3 && microtime(true) - $timeStart > 3;
+
 				/** @var Node $current */
-				if ($current->equals($this->end)) {
+				if ($current->equals($this->end) || $canEnd) {
 
 					$count = 0;
 					$path = [];
 					$currentNode = $this->end;
-					while ($currentNode !== null && $currentNode !== $this->start && ++$count < 50) {
+					while ($currentNode !== null && $currentNode !== $this->start && ++$count < 20) {
 						$path[] = $currentNode;
 						$currentNode = $currentNode->parent;
 
@@ -142,48 +144,74 @@ final class AStar {
 		$directionsBlocked = [];
 
 		for ($x = -1; $x <= 1; ++$x) {
-			for ($z = -1; $z <= 1; ++$z) {
-				if ($x === 0 && $z === 0) {
-					continue;
-				}
+			for ($y = -1; $y <= 1; ++$y) {
+				for ($z = -1; $z <= 1; ++$z) {
+					if ($x === 0 && $z === 0) {
+						continue;
+					}
 
-				if ($x < 0 && $z < 0) {
-					continue;
-				}
+					if ($x < 0 && $z < 0) {
+						continue;
+					}
 
-				$direction = Direction::getDirection($x, $z);
+					$direction = Direction::getDirection($x, $z);
 
-				$neighbor = new Node($node->x + $x, $node->z + $z);
+					$neighbor = new Node($node->x + $x, $y, $node->z + $z);
 
-				$neighbor->g = $neighbor->getDistance($this->start);
-				$neighbor->h = $neighbor->getDistance($this->end);
-				$neighbor->f = $neighbor->g + $neighbor->h;
+					$vector = new Vector3($neighbor->x, $neighbor->y, $neighbor->z);
+					$block = $this->world->getBlock($vector);
 
-				$vector = new Vector3($neighbor->x, $this->y + 1, $neighbor->z);
-				if (!$this->world->getBlock($vector) instanceof Air) {
-					$directionsBlocked[$direction] = true;
+					if ($block instanceof Slab) {
+						$neighbor->y += 0.5;
+					} else if ($block instanceof Stair) {
+						$neighbor->y += 0.75;
+					} else if ($block->isSolid()) {
+						$neighbor->y += 1.5;
+					}
 
-					$directionOpposite = Direction::getOpposite($direction);
-					if ($directionOpposite !== null) {
-						foreach ($directionOpposite as $dir) {
-							$directionsBlocked[$dir] = true;
+					$neighbor->g = $neighbor->getDistance($this->start);
+					$neighbor->h = $neighbor->getDistance($this->end);
+					$neighbor->f = $neighbor->g + $neighbor->h;
+
+					$vector = new Vector3($neighbor->x, $neighbor->y + 1, $neighbor->z);
+					if (!$this->world->getBlock($vector) instanceof Air) {
+						$directionsBlocked[$direction] = true;
+
+						$directionOpposite = Direction::getOpposite($direction);
+						if ($directionOpposite !== null) {
+							foreach ($directionOpposite as $dir) {
+								$directionsBlocked[$dir] = true;
+							}
 						}
 					}
-				}
 
-				$vector = new Vector3($neighbor->x, $this->y - 0.5, $neighbor->z);
-				foreach ($this->blocksBlocked as $block) {
-					if ($this->world->getBlock($vector)->getTypeId() === $block->getTypeId()) {
-						$directionsBlocked[$direction] = true;
-						break;
+					$vector = new Vector3($neighbor->x, $neighbor->y - 0.5, $neighbor->z);
+
+					/** @var Unbeatable $unbeatable */
+					foreach ($this->blocksBlocked as $unbeatable) {
+						$canPass = $unbeatable->getCanPass();
+						$block = $unbeatable->getBlock();
+						$addVector = $unbeatable->getAddVector();
+
+						if (!$canPass) {
+							if ($this->world->getBlock($vector)->getTypeId() === $block->getTypeId()) {
+								$directionsBlocked[$direction] = true;
+								break;
+							}
+						} else {
+							if ($addVector !== null) {
+								$neighbor->x += $addVector->x;
+								$neighbor->z += $addVector->z;
+							}
+						}
 					}
-				}
 
-				if (isset($directionsBlocked[$direction])) {
-					continue;
-				}
+					if (isset($directionsBlocked[$direction])) {
+						continue;
+					}
 
-				yield new Neighbor($neighbor, $direction);
+					yield new Neighbor($neighbor, $direction);
+				}
 			}
 		}
 	}
